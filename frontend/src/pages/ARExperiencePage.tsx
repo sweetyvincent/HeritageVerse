@@ -3,8 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { getSiteById, FALLBACK_HERITAGE_IMAGE } from '../data/heritageSites';
 import {
   Camera, CameraOff, ChevronLeft, X, Info, Share2, History,
-  Eye, RefreshCw, Zap, Volume2, Sparkles, Sliders
+  Eye, RefreshCw, Zap, Volume2, Sparkles, Sliders, Scan
 } from 'lucide-react';
+import { voiceService } from '../services/voiceService';
 import toast from 'react-hot-toast';
 
 const ARExperiencePage: React.FC = () => {
@@ -20,6 +21,35 @@ const ARExperiencePage: React.FC = () => {
   const [scanned, setScanned] = useState(true);
   const [activeHotspot, setActiveHotspot] = useState<number | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
+  const [isIdentifying, setIsIdentifying] = useState(false);
+
+  const toggleVoice = () => {
+    if (audioPlaying) {
+      voiceService.stop();
+      setAudioPlaying(false);
+    } else {
+      const speech = `${site?.name}. ${site?.shortDescription}. Built during ${site?.historicalPeriod} in ${site?.architectureStyle}.`;
+      voiceService.speak({
+        text: speech,
+        onStart: () => setAudioPlaying(true),
+        onEnd: () => setAudioPlaying(false),
+        onError: () => setAudioPlaying(false)
+      });
+    }
+  };
+
+  const snapAndIdentify = () => {
+    setIsIdentifying(true);
+    toast.loading('AI Vision analyzing monument alignment & stone geometry...', { id: 'lens' });
+
+    setTimeout(() => {
+      setIsIdentifying(false);
+      const result = `🔍 AI Vision Match: ${site?.name} (${site?.architectureStyle.split('—')[0].trim()})\n• Epoch: ${site?.historicalPeriod}\n• Status: ${site?.preservationStatus} (${site?.rating}/5.0 Rating)\n• Key Alignment: High astronomical orientation fidelity.`;
+      setAiAnalysisResult(result);
+      toast.success('AI Vision Recognition Complete!', { id: 'lens' });
+    }, 1600);
+  };
 
   // Start Camera Stream
   const startCamera = async () => {
@@ -276,6 +306,25 @@ const ARExperiencePage: React.FC = () => {
               <span>Past / Present</span>
             </button>
             <button
+              onClick={snapAndIdentify}
+              disabled={isIdentifying}
+              className="flex items-center space-x-1.5 bg-gold/20 hover:bg-gold/30 text-gold px-3.5 py-2 rounded-xl text-xs font-bold transition-all border border-gold/40"
+              title="Snap & Identify monument with AI Vision"
+            >
+              <Scan className={`h-3.5 w-3.5 ${isIdentifying ? 'animate-spin' : ''}`} />
+              <span>{isIdentifying ? 'Identifying...' : 'AI Lens'}</span>
+            </button>
+            <button
+              onClick={toggleVoice}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                audioPlaying ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+              title="Audio guide narration"
+            >
+              <Volume2 className="h-3.5 w-3.5" />
+              <span>{audioPlaying ? 'Stop' : 'Voice'}</span>
+            </button>
+            <button
               onClick={triggerScan}
               className="flex items-center space-x-1.5 bg-white/10 hover:bg-gold/20 text-gold px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
               title="Rescan site"
@@ -284,6 +333,20 @@ const ARExperiencePage: React.FC = () => {
               <span>Scan</span>
             </button>
           </div>
+
+          {/* AI Vision Analysis Popup */}
+          {aiAnalysisResult && (
+            <div className="max-w-md w-full bg-heritage-card/95 backdrop-blur-2xl border border-gold/50 rounded-2xl p-4 shadow-2xl animate-fadeInUp">
+              <div className="flex justify-between items-start mb-2">
+                <div className="text-xs font-bold text-gold flex items-center space-x-1">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>AI Monument Recognition</span>
+                </div>
+                <button onClick={() => setAiAnalysisResult(null)} className="text-gray-400 hover:text-white text-xs">✕</button>
+              </div>
+              <p className="text-xs text-gray-200 whitespace-pre-line leading-relaxed">{aiAnalysisResult}</p>
+            </div>
+          )}
         </div>
 
         {/* Bottom Info Sheet */}

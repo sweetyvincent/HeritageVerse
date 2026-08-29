@@ -3,6 +3,7 @@ import { Send, Mic, Volume2, MessageCircle, Sparkles, AlertTriangle, Globe, X, C
 import { heritageSites } from '../data/heritageSites';
 import { useLanguage } from '../context/LanguageContext';
 import { askGroqHeritageAI } from '../services/groqService';
+import { voiceService } from '../services/voiceService';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -272,8 +273,24 @@ const SUGGESTED_QUESTIONS = [
 
 const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.role === 'user';
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleReadAloud = () => {
+    if (isPlaying) {
+      voiceService.stop();
+      setIsPlaying(false);
+    } else {
+      voiceService.speak({
+        text: message.content,
+        onStart: () => setIsPlaying(true),
+        onEnd: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false)
+      });
+    }
+  };
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 group`}>
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
           <Sparkles className="h-4 w-4 text-gold" />
@@ -282,12 +299,11 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
       <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
         isUser
           ? 'bg-gold text-heritage-dark rounded-br-sm'
-          : 'bg-heritage-card border border-heritage-border rounded-bl-sm'
+          : 'bg-heritage-card border border-heritage-border rounded-bl-sm shadow-lg'
       }`}>
         {!isUser ? (
           <div className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">
             {message.content.split('\n').map((line, i) => {
-              // Bold formatting
               const parts = line.split(/\*\*(.*?)\*\*/g);
               return (
                 <span key={i}>
@@ -300,8 +316,22 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
         ) : (
           <p className="text-sm font-medium">{message.content}</p>
         )}
-        <div className={`text-xs mt-1 ${isUser ? 'text-heritage-dark/60 text-right' : 'text-gray-500'}`}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
+          <div className={`text-[10px] ${isUser ? 'text-heritage-dark/60' : 'text-gray-500'}`}>
+            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          {!isUser && (
+            <button
+              onClick={handleReadAloud}
+              className={`text-xs flex items-center space-x-1 px-2 py-0.5 rounded-md transition-all ${
+                isPlaying ? 'bg-gold text-heritage-dark font-bold' : 'text-gray-400 hover:text-gold hover:bg-white/5'
+              }`}
+              title={isPlaying ? 'Stop reading' : 'Read aloud with AI voice'}
+            >
+              <Volume2 className={`h-3 w-3 ${isPlaying ? 'animate-pulse' : ''}`} />
+              <span className="text-[10px]">{isPlaying ? 'Reading...' : 'Listen'}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -313,18 +343,15 @@ const AIGuidePage: React.FC = () => {
     {
       id: '0',
       role: 'ai',
-      content: `🙏 **Namaste! Welcome to Heritage AI!**
-
-I'm your intelligent heritage guide, powered by a knowledge base of India's most significant cultural treasures.
-
-I can help you learn about heritage sites, plan routes, and explore India's incredible history. Try asking me anything!
-
-⚠️ Historical information should be verified against authoritative sources like ASI and UNESCO.`,
+      content: `🙏 **Namaste! Welcome to HeritageVerse AI!**
+      
+I'm your intelligent heritage scholar & tourism guide, powered by real-time LLM inference. Ask me anything about India's 42 UNESCO World Heritage Sites, architectural styles, dynasty timelines, or personalized travel routes!`,
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { language, setLanguage, languages } = useLanguage();
@@ -365,7 +392,37 @@ I can help you learn about heritage sites, plan routes, and explore India's incr
   };
 
   const handleVoice = () => {
-    toast.success('Voice input activated! (Demo mode — type your question)');
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionClass();
+      recognition.lang = language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast('Listening to your voice...', { icon: '🎙️' });
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        sendMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+        toast.error('Could not capture audio. Please type your query.');
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } else {
+      toast('Speech recognition not supported in this browser. Please type.', { icon: '⌨️' });
+    }
   };
 
   return (

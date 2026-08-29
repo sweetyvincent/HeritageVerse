@@ -6,8 +6,9 @@ import { heritageSites, getSiteById } from '../data/heritageSites';
 import * as THREE from 'three';
 import {
   Layers, RotateCcw, Maximize2, Info, ChevronLeft, Zap,
-  Sun, Moon, Sunset, Eye, ZoomIn, ZoomOut, Compass, Sparkles, Play, Pause
+  Sun, Moon, Sunset, Eye, ZoomIn, ZoomOut, Compass, Sparkles, Play, Pause, Volume2, VolumeX, Music
 } from 'lucide-react';
+import { soundscapeEngine, voiceService } from '../services/voiceService';
 import toast from 'react-hot-toast';
 
 // ─── Camera Controller & 360 Orbit ──────────────────────────────────────────
@@ -727,7 +728,48 @@ const ThreeDViewerPage: React.FC = () => {
   const [showInfo, setShowInfo] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [rotateSpeed, setRotateSpeed] = useState(1.5);
+  const [soundscapeActive, setSoundscapeActive] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(false);
   const controlsInstance = useRef<any>(null);
+
+  const toggleSoundscape = () => {
+    if (soundscapeActive) {
+      soundscapeEngine.stop();
+      setSoundscapeActive(false);
+      toast('Spatial soundscape paused', { icon: '🔇' });
+    } else {
+      if (currentSite.category.includes('Temple') || currentSite.category.includes('Archaeological')) {
+        soundscapeEngine.playTempleAmbience();
+      } else {
+        soundscapeEngine.playNatureAmbience();
+      }
+      setSoundscapeActive(true);
+      toast.success('3D Spatial Soundscape Active 🔔');
+    }
+  };
+
+  const toggleVoice = () => {
+    if (voiceActive) {
+      voiceService.stop();
+      setVoiceActive(false);
+    } else {
+      const speech = `${currentSite.name}. ${currentSite.shortDescription}. ${currentSite.facts.slice(0, 2).join(' ')}`;
+      voiceService.speak({
+        text: speech,
+        onStart: () => setVoiceActive(true),
+        onEnd: () => setVoiceActive(false),
+        onError: () => setVoiceActive(false)
+      });
+      toast.success('3D Audio Tour Narration Started');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      soundscapeEngine.stop();
+      voiceService.stop();
+    };
+  }, []);
 
   // 360 Controls
   const handleRotateLeft = () => {
@@ -824,6 +866,33 @@ const ThreeDViewerPage: React.FC = () => {
               <Moon className="h-3.5 w-3.5" />
             </button>
           </div>
+
+          {/* Soundscape & Audio Guide buttons */}
+          <button
+            onClick={toggleSoundscape}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              soundscapeActive
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-bold animate-pulse'
+                : 'bg-white/5 border-heritage-border text-gray-400 hover:text-white'
+            }`}
+            title="Toggle 3D Spatial Temple Soundscape"
+          >
+            <Music className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">{soundscapeActive ? 'Soundscape: ON' : 'Soundscape'}</span>
+          </button>
+
+          <button
+            onClick={toggleVoice}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              voiceActive
+                ? 'bg-red-500/20 border-red-500/50 text-red-400 font-bold animate-pulse'
+                : 'bg-white/5 border-heritage-border text-gray-400 hover:text-white'
+            }`}
+            title="Play Audio Tour Guide"
+          >
+            <Volume2 className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">{voiceActive ? 'Stop Voice' : 'Voice Guide'}</span>
+          </button>
 
           <button
             onClick={() => setAutoRotate(!autoRotate)}

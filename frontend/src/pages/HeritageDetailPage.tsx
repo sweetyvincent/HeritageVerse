@@ -4,8 +4,9 @@ import { getSiteBySlug, heritageSites } from '../data/heritageSites';
 import {
   MapPin, Clock, Star, Eye, Compass, ArrowRight, ChevronLeft,
   Globe, Camera, Info, Plus, Share2, BookOpen, AlertTriangle,
-  ChevronDown, ChevronUp, Zap, Users, Calendar, Landmark
+  ChevronDown, ChevronUp, Zap, Users, Calendar, Landmark, Volume2, VolumeX, Play, Pause, Square, Sparkles
 } from 'lucide-react';
+import { voiceService } from '../services/voiceService';
 import toast from 'react-hot-toast';
 
 const HeritageDetailPage: React.FC = () => {
@@ -16,6 +17,26 @@ const HeritageDetailPage: React.FC = () => {
   const [expandedTimeline, setExpandedTimeline] = useState<number | null>(null);
   const [storyMode, setStoryMode] = useState<'short' | 'detailed' | 'student' | 'tourist'>('tourist');
   const [isAddedToTrip, setIsAddedToTrip] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(0.95);
+
+  const toggleVoiceGuide = (customText?: string) => {
+    if (isSpeaking) {
+      voiceService.stop();
+      setIsSpeaking(false);
+      toast('Voice guide paused', { icon: '🔇' });
+    } else {
+      const textToRead = customText || `${site?.name}. ${site?.shortDescription}. ${site?.fullDescription}`;
+      voiceService.speak({
+        text: textToRead,
+        rate: playbackSpeed,
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
+      toast.success('Playing AI Voice Audio Guide 🎧');
+    }
+  };
 
   if (!site) {
     return (
@@ -187,6 +208,17 @@ Think about it: How would you feel visiting a place that's over ${new Date().get
             <Link to={`/ar-experience/${site.id}`} className="flex-shrink-0 flex items-center space-x-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 text-sm font-medium px-4 py-2 rounded-xl transition-all">
               <Camera className="h-4 w-4" /> <span>AR Experience</span>
             </Link>
+            <button
+              onClick={() => toggleVoiceGuide()}
+              className={`flex-shrink-0 flex items-center space-x-2 text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-md ${
+                isSpeaking
+                  ? 'bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse'
+                  : 'bg-gold hover:bg-amber-500 text-heritage-dark shadow-gold/20'
+              }`}
+            >
+              {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              <span>{isSpeaking ? 'Stop Audio Guide' : 'Listen Audio Guide'}</span>
+            </button>
             <Link to="/ai-guide" className="flex-shrink-0 flex items-center space-x-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-sm font-medium px-4 py-2 rounded-xl transition-all">
               <Zap className="h-4 w-4" /> <span>Ask AI</span>
             </Link>
