@@ -73,8 +73,9 @@ const SiteCard: React.FC<{ site: ReturnType<typeof getFeaturedSites>[0]; index: 
   >
     <div className="absolute inset-0 bg-gradient-to-t from-heritage-dark via-heritage-dark/30 to-transparent z-10 transition-opacity group-hover:opacity-90" />
     <img
-      src={site.images[0]}
+      src={site.images[0] || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'}
       alt={site.name}
+      onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'; }}
       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
     />
     <div className="absolute inset-x-0 bottom-0 z-20 p-5">
@@ -139,10 +140,11 @@ const LandingPage: React.FC = () => {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Taj_Mahal%2C_Agra%2C_India_edit3.jpg/1920px-Taj_Mahal%2C_Agra%2C_India_edit3.jpg"
+            src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1920&q=80"
             alt="Heritage Background"
             className="w-full h-full object-cover"
             onLoad={() => setHeroLoaded(true)}
+            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1920&q=80'; setHeroLoaded(true); }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-heritage-dark/80 via-heritage-dark/60 to-heritage-dark" />
           <div className="absolute inset-0 bg-gradient-to-r from-heritage-dark/40 via-transparent to-heritage-dark/40" />

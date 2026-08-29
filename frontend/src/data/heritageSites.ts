@@ -159,7 +159,8 @@ Today the ruins of Hampi cover an area of about 4,100 hectares containing over 1
     featured: true,
     images: [
       'https://images.unsplash.com/photo-1600100397608-f010f443b238?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1336, title: 'Vijayanagara Founded', description: 'Harihara I and Bukka Raya I found the Vijayanagara Empire with Hampi as its capital.' },
@@ -435,7 +436,9 @@ The palace is famous for its illumination during the Dasara festival when it is 
     rating: 4.8,
     featured: true,
     images: [
-      'https://images.unsplash.com/photo-1588096344356-9b48a313d969?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1588096344356-9b48a313d969?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600100397608-f010f443b238?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1628107082236-4d0f6bbd6883?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1399, title: 'Original Palace', description: 'The original palace is built of wood for the Wadiyar dynasty in Mysore.' },

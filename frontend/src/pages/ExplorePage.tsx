@@ -9,8 +9,9 @@ const HeritageCard: React.FC<{ site: HeritageSite }> = ({ site }) => (
     <div className="relative h-52 overflow-hidden flex-shrink-0">
       <div className="absolute inset-0 bg-gradient-to-t from-heritage-card via-transparent to-transparent z-10" />
       <img
-        src={site.images[0]}
+        src={site.images[0] || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'}
         alt={site.name}
+        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'; }}
         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
       />
       {/* Badges */}

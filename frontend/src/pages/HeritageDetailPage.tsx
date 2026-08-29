@@ -124,8 +124,9 @@ Think about it: How would you feel visiting a place that's over ${new Date().get
       <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-heritage-dark/40 via-transparent to-heritage-dark z-10" />
         <img
-          src={site.images[0]}
+          src={site.images[0] || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1920&q=80'}
           alt={site.name}
+          onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1920&q=80'; }}
           className="w-full h-full object-cover"
         />
         {/* Back Button */}
@@ -387,7 +388,12 @@ Think about it: How would you feel visiting a place that's over ${new Date().get
                   <Link key={nearby.id} to={`/heritage/${nearby.slug}`}
                     className="heritage-card rounded-xl overflow-hidden hover:border-gold/30 transition-all group">
                     <div className="h-40 overflow-hidden">
-                      <img src={nearby.images[0]} alt={nearby.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <img
+                        src={nearby.images[0] || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'}
+                        alt={nearby.name}
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80'; }}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
                     </div>
                     <div className="p-4">
                       <div className="text-xs text-gold font-semibold mb-1">{nearby.category}</div>
