@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Volume2, MessageCircle, Sparkles, AlertTriangle, Globe, X, ChevronDown } from 'lucide-react';
+import { Send, Mic, Volume2, MessageCircle, Sparkles, AlertTriangle, Globe, X, ChevronDown, Bot, Zap } from 'lucide-react';
 import { heritageSites } from '../data/heritageSites';
 import { useLanguage } from '../context/LanguageContext';
+import { askGroqHeritageAI } from '../services/groqService';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -345,12 +346,22 @@ I can help you learn about heritage sites, plan routes, and explore India's incr
     setIsTyping(true);
     setShowSuggestions(false);
 
-    await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
-
-    const aiResponse = getAIResponse(userText);
-    const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: aiResponse, timestamp: new Date() };
-    setMessages(prev => [...prev, aiMsg]);
-    setIsTyping(false);
+    try {
+      const aiResponse = await askGroqHeritageAI(userText, messages, language);
+      const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: aiResponse, timestamp: new Date() };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      console.error(err);
+      const fallbackMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: getAIResponse(userText),
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, fallbackMsg]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleVoice = () => {

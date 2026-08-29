@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { MessageCircle, X, Send, Sparkles, AlertTriangle, Minimize2, Maximize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, AlertTriangle, Minimize2, Maximize2, Bot } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { askGroqHeritageAI } from '../../services/groqService';
 
 interface Message {
   id: string;
@@ -13,7 +14,7 @@ const QUICK_RESPONSES: Record<string, string> = {
   'hampi': 'Hampi was the capital of the Vijayanagara Empire and was once one of the wealthiest cities in the world. Today it is a UNESCO World Heritage Site with over 1,600 monuments.',
   'heritage': 'India has 42 UNESCO World Heritage Sites! The most visited include Taj Mahal, Red Fort, Hampi, and the Ajanta & Ellora Caves.',
   'route': 'A popular 3-day heritage route: Day 1 - Taj Mahal + Agra Fort. Day 2 - Red Fort + Humayun\'s Tomb in Delhi. Day 3 - Qutub Minar + Lodhi Garden.',
-  'hello': 'Namaste! 🙏 I\'m Heritage AI, your guide to India\'s incredible cultural legacy. Ask me about any monument, historical period, or help planning your heritage visit!',
+  'hello': 'Namaste! 🙏 I\'m HeritageVerse AI, powered by Groq LLM. Ask me anything about India\'s cultural heritage, architecture, or travel planning!',
 };
 
 const getResponse = (msg: string): string => {
@@ -21,7 +22,7 @@ const getResponse = (msg: string): string => {
   for (const [key, response] of Object.entries(QUICK_RESPONSES)) {
     if (lower.includes(key)) return response;
   }
-  return `Great question! India has an incredibly rich heritage spanning 5,000+ years. For detailed information about "${msg}", I recommend visiting the Heritage AI Guide page for comprehensive answers with full historical context.`;
+  return `India has a glorious 5,000-year history with 42 UNESCO World Heritage Sites. Ask me about any monument, architectural style, or ASI historical facts!`;
 };
 
 const HIDDEN_PATHS = ['/ai-guide', '/auth/login', '/auth/register', '/auth/forgot-password'];
@@ -30,7 +31,7 @@ const ChatBot: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: '0', role: 'ai', content: 'Namaste! 🙏 I\'m Heritage AI. Ask me anything about India\'s cultural heritage!' }
+    { id: '0', role: 'ai', content: 'Namaste! 🙏 I\'m HeritageVerse AI (Powered by Groq LLM). Ask me anything about India\'s cultural heritage!' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -45,10 +46,17 @@ const ChatBot: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
-    await new Promise(r => setTimeout(r, 900));
-    const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: getResponse(userMsg.content) };
-    setMessages(prev => [...prev, aiMsg]);
-    setIsTyping(false);
+
+    try {
+      const aiReply = await askGroqHeritageAI(userMsg.content, messages);
+      const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: aiReply };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (e) {
+      const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: getResponse(userMsg.content) };
+      setMessages(prev => [...prev, aiMsg]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const suggestions = ['Tell me about Taj Mahal', 'Plan a heritage route', 'Best sites to visit'];
