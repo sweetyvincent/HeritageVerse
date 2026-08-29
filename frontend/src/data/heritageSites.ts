@@ -34,6 +34,8 @@ export interface TimelineEvent {
   description: string;
 }
 
+export const FALLBACK_HERITAGE_IMAGE = 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80';
+
 export const heritageSites: HeritageSite[] = [
   {
     id: '1',
@@ -58,8 +60,8 @@ The construction project employed some 20,000 artisans under the guidance of a b
     rating: 4.9,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Taj_Mahal%2C_Agra%2C_India_edit3.jpg/1200px-Taj_Mahal%2C_Agra%2C_India_edit3.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/1/1d/Taj_Mahal_%28Edited%29.jpeg'
+      'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1631, title: 'Death of Mumtaz Mahal', description: 'Shah Jahan\'s beloved wife Mumtaz Mahal dies during childbirth. A grief-stricken emperor vows to build the world\'s most beautiful mausoleum.' },
@@ -108,7 +110,8 @@ Every year on Independence Day (15 August), the Prime Minister of India hoists t
     rating: 4.7,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Red_Fort_in_Delhi_03.jpg/1200px-Red_Fort_in_Delhi_03.jpg'
+      'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1597044141243-7a13d789064c?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1638, title: 'Construction Begins', description: 'Emperor Shah Jahan commissions the fort as his new capital\'s palace after moving from Agra.' },
@@ -155,7 +158,8 @@ Today the ruins of Hampi cover an area of about 4,100 hectares containing over 1
     rating: 4.8,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Virupaksha_Temple_Hampi_1.jpg/1200px-Virupaksha_Temple_Hampi_1.jpg'
+      'https://images.unsplash.com/photo-1600100397608-f010f443b238?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1336, title: 'Vijayanagara Founded', description: 'Harihara I and Bukka Raya I found the Vijayanagara Empire with Hampi as its capital.' },
@@ -202,7 +206,7 @@ The site includes the massive bas-relief "Descent of the Ganges" (also called Ar
     rating: 4.6,
     featured: false,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Shore_temple_wiki.jpg/1200px-Shore_temple_wiki.jpg'
+      'https://images.unsplash.com/photo-1621847468516-1ed5d0df56fe?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 600, title: 'Pallava Dynasty', description: 'The Pallava dynasty establishes its capital at Kanchipuram, beginning construction at Mahabalipuram.' },
@@ -248,7 +252,7 @@ The temple is part of the UNESCO World Heritage Site "Great Living Chola Temples
     rating: 4.8,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Brihadeeswara_Temple_Thanjavur.jpg/1200px-Brihadeeswara_Temple_Thanjavur.jpg'
+      'https://images.unsplash.com/photo-1609766418204-94aae0ecfdfc?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 985, title: 'Raja Raja I Ascends', description: 'Raja Raja Chola I becomes king and begins a campaign to establish Chola supremacy across South India.' },
@@ -294,7 +298,7 @@ The temple is also known as the Black Pagoda by early European sailors, who used
     rating: 4.7,
     featured: false,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Konarka_Temple.jpg/1200px-Konarka_Temple.jpg'
+      'https://images.unsplash.com/photo-1629814696209-4f4fac9da56e?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1238, title: 'King Narasimhadeva I', description: 'The Eastern Ganga king begins a 12-year construction project to build a temple to the Sun God.' },
@@ -340,7 +344,7 @@ The caves were carved out of the horseshoe-shaped cliff by Buddhist monks beginn
     rating: 4.7,
     featured: false,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Ajanta_cave1.jpg/1200px-Ajanta_cave1.jpg'
+      'https://images.unsplash.com/photo-1628107082236-4d0f6bbd6883?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: -200, title: 'First Phase Begins', description: 'Buddhist monks begin carving the first caves as monsoon retreats during the 2nd century BCE.' },
@@ -386,7 +390,7 @@ The most outstanding is the colossal Kailash Temple (Cave 16), which was built b
     rating: 4.8,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Ellora_cave_16_entrance_to_Kailash_temple.jpg/1200px-Ellora_cave_16_entrance_to_Kailash_temple.jpg'
+      'https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 600, title: 'Construction Begins', description: 'Buddhist monks begin carving the first Ellora caves during the Kalachuri period.' },
@@ -431,7 +435,7 @@ The palace is famous for its illumination during the Dasara festival when it is 
     rating: 4.8,
     featured: true,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Mysore_Palace_Morning.jpg/1200px-Mysore_Palace_Morning.jpg'
+      'https://images.unsplash.com/photo-1588096344356-9b48a313d969?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: 1399, title: 'Original Palace', description: 'The original palace is built of wood for the Wadiyar dynasty in Mysore.' },
@@ -479,7 +483,7 @@ The four torans (gateways) of the Great Stupa are considered the finest examples
     rating: 4.5,
     featured: false,
     images: [
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Sanchi1_N-MP-220.jpg/1200px-Sanchi1_N-MP-220.jpg'
+      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80'
     ],
     timeline: [
       { year: -268, title: 'Ashoka Becomes Emperor', description: 'After the bloody Kalinga War, Emperor Ashoka converts to Buddhism and begins spreading its teachings across his empire.' },

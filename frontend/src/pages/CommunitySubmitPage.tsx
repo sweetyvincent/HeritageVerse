@@ -1,76 +1,211 @@
-import React, { useState } from 'react';
-import { UploadCloud, X, Send } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { UploadCloud, X, Send, Image as ImageIcon, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 
-const CommunitySubmitPage = () => {
+const CommunitySubmitPage: React.FC = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('Folk Tales');
+  const [location, setLocation] = useState('');
+  const [content, setContent] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Image size must be under 10MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        toast.success('Image selected successfully!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        toast.success('Image uploaded!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      toast.error('Please fill in the required fields');
+      return;
+    }
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      toast.success('Story submitted successfully! Pending moderation.');
-    }, 1500);
+      setSubmitted(true);
+      toast.success('Story submitted for community review!');
+    }, 1200);
   };
 
   return (
     <div className="min-h-screen pt-24 pb-20 bg-heritage-dark px-4 sm:px-6 lg:px-8">
-      <Toaster position="top-center" toastOptions={{ style: { background: '#12121A', color: '#fff', border: '1px solid #1E1E2E' } }} />
+      <Toaster position="top-center" />
       <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-serif font-bold text-white mb-4">Share Your <span className="text-gold">Story</span></h1>
-          <p className="text-gray-400">Contribute to our digital archive. Share local legends, historical facts, or personal experiences related to our heritage.</p>
-        </div>
+        <Link to="/community" className="inline-flex items-center space-x-2 text-sm text-gray-400 hover:text-white mb-6">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Community</span>
+        </Link>
 
-        <form onSubmit={handleSubmit} className="glass p-8 rounded-2xl border border-gray-800 space-y-6">
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Story Title *</label>
-            <input type="text" required className="w-full bg-heritage-dark border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold transition-colors" placeholder="e.g., The Hidden Frescoes of Ajanta" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Category *</label>
-              <select className="w-full bg-heritage-dark border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold transition-colors appearance-none">
-                <option>Folk Tales</option>
-                <option>Historical Photos</option>
-                <option>Traditional Crafts</option>
-                <option>Personal History</option>
-              </select>
+        {submitted ? (
+          <div className="glass p-12 rounded-3xl border border-gold/30 text-center animate-fadeInUp">
+            <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
-              <input type="text" className="w-full bg-heritage-dark border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold transition-colors" placeholder="e.g., Maharashtra, India" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Story Content *</label>
-            <textarea required rows={8} className="w-full bg-heritage-dark border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold transition-colors resize-none" placeholder="Write your story here..."></textarea>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Cover Image (Optional)</label>
-            <div className="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-gold/50 transition-colors cursor-pointer bg-heritage-dark">
-              <UploadCloud className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Drag and drop an image, or click to browse</p>
-              <p className="text-xs text-gray-600 mt-2">JPG, PNG up to 5MB</p>
+            <h2 className="text-3xl font-serif font-bold text-white mb-3">Story Submitted!</h2>
+            <p className="text-gray-300 max-w-md mx-auto mb-8">
+              Thank you for contributing to the preservation of India's cultural heritage. Your story has been sent to the moderation queue.
+            </p>
+            {imagePreview && (
+              <div className="max-w-sm mx-auto mb-8 rounded-2xl overflow-hidden border border-heritage-border">
+                <img src={imagePreview} alt="Uploaded story" className="w-full h-48 object-cover" />
+              </div>
+            )}
+            <div className="flex justify-center gap-4">
+              <Link to="/community" className="bg-gold text-heritage-dark font-bold px-6 py-3 rounded-xl hover:bg-amber-500 transition-all">
+                Browse Community Stories
+              </Link>
+              <button onClick={() => { setSubmitted(false); setTitle(''); setContent(''); setImagePreview(null); }} className="bg-white/10 text-white px-6 py-3 rounded-xl hover:bg-white/20 transition-all">
+                Submit Another
+              </button>
             </div>
           </div>
+        ) : (
+          <>
+            <div className="text-center mb-10">
+              <h1 className="text-4xl font-serif font-bold text-white mb-4">Share Your <span className="text-gold">Story</span></h1>
+              <p className="text-gray-400">Contribute oral histories, folk legends, local photographs, and traditions.</p>
+            </div>
 
-          <div className="border-t border-gray-800 pt-6 flex justify-end">
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className={`bg-gold hover:bg-gold-light text-heritage-dark px-8 py-3 rounded-lg font-bold flex items-center transition-all shadow-[0_0_20px_rgba(212,160,23,0.3)] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {isSubmitting ? 'Submitting...' : <><Send className="w-5 h-5 mr-2" /> Submit for Review</>}
-            </button>
-          </div>
-          <p className="text-center text-xs text-gray-500 mt-4">By submitting, you agree to our community guidelines. All stories are reviewed by moderators before publishing.</p>
-        </form>
+            <form onSubmit={handleSubmit} className="glass p-8 rounded-2xl border border-heritage-border space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Story Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  className="w-full bg-heritage-card border border-heritage-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold/60 transition-colors"
+                  placeholder="e.g., The Forgotten Temple of Karnataka"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Category *</label>
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full bg-heritage-card border border-heritage-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold/60 transition-colors"
+                  >
+                    <option value="Folk Tales">Folk Tales & Legends</option>
+                    <option value="Historical Photos">Historical Photographs</option>
+                    <option value="Traditional Crafts">Traditional Crafts & Art</option>
+                    <option value="Festivals">Festivals & Rituals</option>
+                    <option value="Oral History">Oral Histories</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Location / Region</label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    className="w-full bg-heritage-card border border-heritage-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold/60 transition-colors"
+                    placeholder="e.g., Hampi, Karnataka"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Story Content *</label>
+                <textarea
+                  required
+                  rows={6}
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  className="w-full bg-heritage-card border border-heritage-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold/60 transition-colors resize-none"
+                  placeholder="Write your story, memories, or historical narrative..."
+                />
+              </div>
+
+              {/* Working Image Upload Area */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Attach Photo / Artifact Image</label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {imagePreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-gold/40 max-h-72">
+                    <img src={imagePreview} alt="Preview" className="w-full h-64 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImagePreview(null)}
+                      className="absolute top-3 right-3 p-2 rounded-full bg-black/70 hover:bg-red-600 text-white transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-xs text-green-400 font-medium">
+                      ✓ Image Attached
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={handleDrop}
+                    className="border-2 border-dashed border-heritage-border hover:border-gold/60 rounded-2xl p-8 text-center transition-colors cursor-pointer bg-heritage-card/50 hover:bg-white/5"
+                  >
+                    <UploadCloud className="w-10 h-10 text-gold mx-auto mb-3" />
+                    <p className="text-sm text-gray-300 font-medium">Click to select photo or drag & drop</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP up to 10MB</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-heritage-border pt-6 flex items-center justify-between">
+                <span className="text-xs text-gray-400">All submissions are reviewed before publication</span>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-gold hover:bg-amber-500 text-heritage-dark font-bold px-8 py-3.5 rounded-xl flex items-center transition-all shadow-xl shadow-gold/20 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-heritage-dark/30 border-t-heritage-dark rounded-full animate-spin mr-2" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  <span>Submit Story</span>
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

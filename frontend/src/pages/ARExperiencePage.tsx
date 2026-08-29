@@ -1,211 +1,316 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getSiteById } from '../data/heritageSites';
-import { Camera, ChevronLeft, X, ZoomIn, Info, Share2, History, Eye as EyeIcon } from 'lucide-react';
+import { getSiteById, FALLBACK_HERITAGE_IMAGE } from '../data/heritageSites';
+import {
+  Camera, CameraOff, ChevronLeft, X, Info, Share2, History,
+  Eye, RefreshCw, Zap, Volume2, Sparkles, Sliders
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ARExperiencePage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const site = getSiteById(siteId || '1');
 
-  const [mode, setMode] = useState<'present' | 'historical'>('present');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(false);
+  const [mode, setMode] = useState<'present' | 'historical' | 'split'>('present');
+  const [splitRatio, setSplitRatio] = useState(50);
   const [scanning, setScanning] = useState(false);
-  const [scanned, setScanned] = useState(false);
+  const [scanned, setScanned] = useState(true);
   const [activeHotspot, setActiveHotspot] = useState<number | null>(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
 
-  const hotspots = [
-    { x: 30, y: 40, label: 'Main Structure', info: `The central structure of ${site?.name} dates to ${site?.historicalPeriod}` },
-    { x: 65, y: 30, label: 'Architectural Detail', info: `Notice the intricate ${site?.architectureStyle?.split('—')[0]?.trim()} craftsmanship` },
-    { x: 50, y: 70, label: 'Foundation', info: 'The foundation has supported this structure for centuries' },
-  ];
+  // Start Camera Stream
+  const startCamera = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          setCameraActive(true);
+          setCameraError(false);
+          toast.success('Live AR Camera activated!');
+        }
+      } else {
+        throw new Error('Camera not supported');
+      }
+    } catch (err) {
+      console.warn('Camera access unavailable, using simulated AR viewport', err);
+      setCameraError(true);
+      setCameraActive(false);
+      toast('Using simulated AR view (Camera not accessible)', { icon: '📷' });
+    }
+  };
 
-  const startScan = () => {
+  // Stop Camera
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  useEffect(() => {
+    // Attempt camera start on mount
+    startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const triggerScan = () => {
     setScanning(true);
-    setTimeout(() => { setScanning(false); setScanned(true); toast.success('Heritage site recognized!'); }, 2800);
+    toast.loading('Analyzing architectural features...', { id: 'scan' });
+    setTimeout(() => {
+      setScanning(false);
+      setScanned(true);
+      toast.success(`${site?.name || 'Monument'} recognized! AR markers locked.`, { id: 'scan' });
+    }, 2000);
   };
 
   if (!site) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-heritage-dark pt-16">
       <div className="text-center">
-        <h2 className="text-2xl font-serif font-bold mb-4">Site not found</h2>
-        <Link to="/explore" className="bg-gold text-heritage-dark font-bold px-6 py-3 rounded-xl">Browse Sites</Link>
+        <h2 className="text-2xl font-serif font-bold mb-4">Heritage Site Not Found</h2>
+        <Link to="/explore" className="bg-gold text-heritage-dark font-bold px-6 py-3 rounded-xl">Browse All Sites</Link>
       </div>
     </div>
   );
 
+  const hotspots = [
+    { x: 30, y: 35, label: 'Main Architectural Core', info: `Built in ${site.historicalPeriod}. Designed in classic ${site.architectureStyle.split('—')[0].trim()} style.` },
+    { x: 68, y: 45, label: 'Material & Construction', info: `Crafted from natural materials that have endured for centuries with meticulous hand carvings.` },
+    { x: 50, y: 72, label: 'Archaeological Foundation', info: `Subsurface structural foundation engineered to withstand environmental stresses.` },
+  ];
+
   return (
-    <div className="min-h-screen bg-black pt-16 flex flex-col">
-      {/* Camera-style header */}
-      <div className="absolute top-16 left-0 right-0 z-30 flex items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-black pt-16 flex flex-col select-none overflow-hidden">
+      {/* Top Controls Bar */}
+      <div className="absolute top-16 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
         <Link to={`/heritage/${site.slug}`} className="flex items-center space-x-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2 text-sm text-gray-300 hover:text-white transition-all">
           <ChevronLeft className="h-4 w-4" />
-          <span>Back</span>
+          <span className="hidden sm:inline">{site.name}</span>
         </Link>
+
+        {/* Live Camera / Simulation Status */}
         <div className="flex items-center space-x-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2">
-          <Camera className="h-4 w-4 text-gold" />
-          <span className="text-sm text-white font-medium">AR Experience</span>
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          {cameraActive ? (
+            <>
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+              <span className="text-xs text-white font-medium">Live Camera AR</span>
+            </>
+          ) : (
+            <>
+              <div className="w-2.5 h-2.5 rounded-full bg-gold animate-pulse" />
+              <span className="text-xs text-gold font-medium">Simulated AR View</span>
+            </>
+          )}
         </div>
-        <button onClick={() => { navigator.clipboard.writeText(window.location.href).catch(() => {}); toast.success('Link copied!'); }}
-          className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2">
-          <Share2 className="h-4 w-4 text-gray-300" />
-        </button>
+
+        {/* Action buttons */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={cameraActive ? stopCamera : startCamera}
+            className={`p-2 rounded-xl border backdrop-blur-md transition-all ${cameraActive ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-black/60 border-white/10 text-gray-300 hover:text-white'}`}
+            title={cameraActive ? 'Turn Camera Off' : 'Turn Camera On'}
+          >
+            {cameraActive ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => { navigator.clipboard.writeText(window.location.href).catch(() => {}); toast.success('AR Link copied to clipboard!'); }}
+            className="p-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl text-gray-300 hover:text-white"
+            title="Share"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* AR Viewport */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Camera-style background */}
-        <div className="absolute inset-0" style={{
-          background: scanned
-            ? 'transparent'
-            : 'linear-gradient(135deg, #050508 0%, #0a0a1a 50%, #050508 100%)',
-        }}>
-          {scanned && (
-            <img
-              src={site.images[0]}
-              alt={site.name}
-              className={`w-full h-full object-cover transition-all duration-1000 ${mode === 'historical' ? 'sepia brightness-75' : 'brightness-90'}`}
-            />
-          )}
+      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+        {/* Real Camera Feed (if available) */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          autoPlay
+          className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraActive ? 'opacity-100' : 'hidden'}`}
+        />
+
+        {/* Simulated Background (if camera not active or in historical overlay mode) */}
+        <div className={`absolute inset-0 z-0 ${cameraActive ? 'opacity-40 mix-blend-overlay' : 'opacity-100'}`}>
+          <img
+            src={site.images[0] || FALLBACK_HERITAGE_IMAGE}
+            alt={site.name}
+            onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_HERITAGE_IMAGE; }}
+            className={`w-full h-full object-cover transition-all duration-700 ${
+              mode === 'historical'
+                ? 'sepia hue-rotate-15 contrast-125 brightness-90 saturate-150'
+                : 'brightness-90'
+            }`}
+          />
         </div>
 
-        {/* Viewfinder Overlay */}
-        {!scanned && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            {/* Corner brackets */}
-            {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(pos => (
-              <div key={pos} className={`absolute w-12 h-12 border-2 border-gold/70 ${
-                pos.includes('top') ? 'top-[20%]' : 'bottom-[20%]'
-              } ${pos.includes('left') ? 'left-[15%]' : 'right-[15%]'} ${
-                pos === 'top-left' ? 'border-r-0 border-b-0 rounded-tl-lg' :
-                pos === 'top-right' ? 'border-l-0 border-b-0 rounded-tr-lg' :
-                pos === 'bottom-left' ? 'border-r-0 border-t-0 rounded-bl-lg' :
-                'border-l-0 border-t-0 rounded-br-lg'
-              }`} />
-            ))}
-
-            {/* Center crosshair */}
-            <div className="relative">
-              <div className="w-6 h-0.5 bg-gold/60 absolute -left-3 top-1/2 -translate-y-1/2" />
-              <div className="w-0.5 h-6 bg-gold/60 absolute left-1/2 -translate-x-1/2 -top-3" />
-              <div className="w-3 h-3 border-2 border-gold rounded-full" />
+        {/* Temporal Split Screen Mode */}
+        {mode === 'split' && (
+          <div
+            className="absolute inset-0 z-10 overflow-hidden pointer-events-none"
+            style={{ width: `${splitRatio}%`, borderRight: '2px solid #D4A017' }}
+          >
+            <img
+              src={site.images[site.images.length > 1 ? 1 : 0] || FALLBACK_HERITAGE_IMAGE}
+              alt="Historical"
+              className="absolute inset-0 w-screen h-full object-cover sepia hue-rotate-15 contrast-150 brightness-75 max-w-none"
+            />
+            <div className="absolute top-24 left-4 bg-gold text-heritage-dark font-bold text-xs px-2.5 py-1 rounded-md shadow-lg">
+              Historical Era
             </div>
-
-            {/* Scanning animation */}
-            {scanning && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent animate-pulse"
-                  style={{ animation: 'scan 2s linear infinite', top: '50%' }} />
-              </div>
-            )}
           </div>
         )}
 
-        {/* Historical overlay */}
-        {scanned && mode === 'historical' && (
-          <div className="absolute inset-0 bg-amber-900/30 pointer-events-none" />
-        )}
+        {/* Camera Viewfinder Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+          {/* Corner brackets */}
+          <div className="absolute top-[18%] left-[10%] w-10 h-10 border-t-2 border-l-2 border-gold/70 rounded-tl-lg" />
+          <div className="absolute top-[18%] right-[10%] w-10 h-10 border-t-2 border-r-2 border-gold/70 rounded-tr-lg" />
+          <div className="absolute bottom-[24%] left-[10%] w-10 h-10 border-b-2 border-l-2 border-gold/70 rounded-bl-lg" />
+          <div className="absolute bottom-[24%] right-[10%] w-10 h-10 border-b-2 border-r-2 border-gold/70 rounded-br-lg" />
 
-        {/* Hotspots (visible after scan) */}
-        {scanned && hotspots.map((h, i) => (
-          <button
-            key={i}
-            className="absolute group"
-            style={{ left: `${h.x}%`, top: `${h.y}%` }}
-            onClick={() => setActiveHotspot(activeHotspot === i ? null : i)}
-          >
-            <div className="relative -translate-x-1/2 -translate-y-1/2">
-              <div className="w-7 h-7 rounded-full bg-gold border-2 border-white shadow-lg shadow-gold/50 flex items-center justify-center">
-                <Info className="h-3.5 w-3.5 text-heritage-dark" />
-              </div>
-              <div className="absolute -top-1 -left-1 w-9 h-9 rounded-full border-2 border-gold/30 animate-ping" />
-            </div>
-            {activeHotspot === i && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-heritage-card/95 backdrop-blur-xl border border-gold/30 rounded-xl p-3 text-left z-20">
-                <div className="flex items-start justify-between mb-1">
-                  <div className="text-xs font-bold text-gold">{h.label}</div>
-                  <button onClick={e => { e.stopPropagation(); setActiveHotspot(null); }}>
-                    <X className="h-3 w-3 text-gray-400" />
-                  </button>
-                </div>
-                <p className="text-xs text-gray-300 leading-relaxed">{h.info}</p>
-              </div>
-            )}
-          </button>
-        ))}
+          {/* Crosshair Center */}
+          <div className="relative">
+            <div className="w-8 h-0.5 bg-gold/50 absolute -left-4 top-1/2 -translate-y-1/2" />
+            <div className="w-0.5 h-8 bg-gold/50 absolute left-1/2 -translate-x-1/2 -top-4" />
+            <div className="w-4 h-4 border-2 border-gold/80 rounded-full" />
+          </div>
 
-        {/* Scan / Mode controls */}
-        <div className="absolute bottom-32 left-0 right-0 flex flex-col items-center space-y-4 px-4">
-          {!scanned ? (
-            <button
-              onClick={startScan}
-              disabled={scanning}
-              className="flex items-center space-x-3 bg-gold hover:bg-amber-500 disabled:opacity-70 text-heritage-dark font-bold px-8 py-4 rounded-2xl transition-all shadow-2xl shadow-gold/30"
-            >
-              {scanning ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-heritage-dark/30 border-t-heritage-dark rounded-full animate-spin" />
-                  <span>Scanning Heritage Site...</span>
-                </>
-              ) : (
-                <>
-                  <Camera className="h-5 w-5" />
-                  <span>Scan Heritage Site</span>
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setMode('present')}
-                className={`flex items-center space-x-2 px-5 py-3 rounded-xl font-medium transition-all ${mode === 'present' ? 'bg-gold text-heritage-dark' : 'bg-black/60 border border-white/20 text-white hover:border-gold/40'}`}
-              >
-                <EyeIcon className="h-4 w-4" />
-                <span>Present Day</span>
-              </button>
-              <button
-                onClick={() => setMode('historical')}
-                className={`flex items-center space-x-2 px-5 py-3 rounded-xl font-medium transition-all ${mode === 'historical' ? 'bg-gold text-heritage-dark' : 'bg-black/60 border border-white/20 text-white hover:border-gold/40'}`}
-              >
-                <History className="h-4 w-4" />
-                <span>Historical</span>
-              </button>
+          {/* Scanning Beam Animation */}
+          {scanning && (
+            <div className="absolute inset-x-[10%] top-[18%] bottom-[24%] overflow-hidden pointer-events-none">
+              <div
+                className="w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent shadow-[0_0_15px_#D4A017] animate-bounce"
+                style={{ height: '3px' }}
+              />
             </div>
           )}
-
-          {/* Instructions */}
-          <p className="text-xs text-gray-400 text-center">
-            {!scanned
-              ? 'Point camera at a heritage site marker or press Scan to demo'
-              : `Viewing ${mode === 'historical' ? 'historical reconstruction' : 'present day'} of ${site.name} • Tap hotspots for info`}
-          </p>
         </div>
 
-        {/* Bottom Info Panel */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 pt-10">
-          <div className="bg-heritage-card/80 backdrop-blur-xl border border-heritage-border rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gold font-semibold mb-0.5">{site.category} • {site.historicalPeriod}</div>
-                <div className="font-serif font-bold">{site.name}</div>
-                <div className="text-xs text-gray-400">{site.location}</div>
+        {/* AR Hotspot Markers */}
+        {scanned && hotspots.map((h, i) => (
+          <div
+            key={i}
+            className="absolute z-20"
+            style={{ left: `${h.x}%`, top: `${h.y}%` }}
+          >
+            <button
+              onClick={() => setActiveHotspot(activeHotspot === i ? null : i)}
+              className="relative -translate-x-1/2 -translate-y-1/2 group"
+            >
+              <div className="w-8 h-8 rounded-full bg-gold/90 border-2 border-white shadow-xl shadow-gold/60 flex items-center justify-center text-heritage-dark font-bold text-xs transition-transform group-hover:scale-125">
+                <Info className="h-4 w-4" />
               </div>
-              <Link to={`/heritage/${site.slug}`}
-                className="text-xs bg-gold/10 text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/20 transition-all">
-                Full Details
+              <div className="absolute -top-1 -left-1 w-10 h-10 rounded-full border-2 border-gold/50 animate-ping pointer-events-none" />
+            </button>
+
+            {/* Hotspot Popup */}
+            {activeHotspot === i && (
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-64 bg-heritage-card/95 backdrop-blur-xl border border-gold/40 rounded-2xl p-4 shadow-2xl z-30 animate-fadeInUp">
+                <div className="flex items-start justify-between mb-1">
+                  <span className="text-xs font-bold text-gold">{h.label}</span>
+                  <button onClick={() => setActiveHotspot(null)} className="text-gray-400 hover:text-white">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-200 leading-relaxed">{h.info}</p>
+                <div className="mt-2 text-[10px] text-gray-500 font-mono">AR Anchored • Precision: High</div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Split Screen Slider Control */}
+        {mode === 'split' && (
+          <div className="absolute top-28 inset-x-8 z-30 max-w-md mx-auto bg-black/60 backdrop-blur-md rounded-2xl p-3 border border-gold/30">
+            <div className="flex justify-between text-xs text-gray-300 mb-1">
+              <span>Historical (Past)</span>
+              <span>Present Day</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="90"
+              value={splitRatio}
+              onChange={e => setSplitRatio(Number(e.target.value))}
+              className="w-full accent-gold cursor-pointer"
+            />
+          </div>
+        )}
+
+        {/* Floating Bottom AR Mode Controls */}
+        <div className="absolute bottom-24 inset-x-4 z-30 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2 bg-heritage-card/90 backdrop-blur-xl p-1.5 rounded-2xl border border-white/15 shadow-2xl">
+            <button
+              onClick={() => setMode('present')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all ${mode === 'present' ? 'bg-gold text-heritage-dark font-bold' : 'text-gray-300 hover:text-white'}`}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Present Day</span>
+            </button>
+            <button
+              onClick={() => setMode('historical')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all ${mode === 'historical' ? 'bg-gold text-heritage-dark font-bold' : 'text-gray-300 hover:text-white'}`}
+            >
+              <History className="h-3.5 w-3.5" />
+              <span>Historical Recon</span>
+            </button>
+            <button
+              onClick={() => setMode('split')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all ${mode === 'split' ? 'bg-gold text-heritage-dark font-bold' : 'text-gray-300 hover:text-white'}`}
+            >
+              <Sliders className="h-3.5 w-3.5" />
+              <span>Past / Present</span>
+            </button>
+            <button
+              onClick={triggerScan}
+              className="flex items-center space-x-1.5 bg-white/10 hover:bg-gold/20 text-gold px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+              title="Rescan site"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${scanning ? 'animate-spin' : ''}`} />
+              <span>Scan</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Info Sheet */}
+        <div className="absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black via-black/90 to-transparent p-4">
+          <div className="max-w-4xl mx-auto flex items-center justify-between bg-heritage-card/90 backdrop-blur-xl border border-heritage-border rounded-2xl p-4">
+            <div>
+              <div className="text-[11px] text-gold font-bold uppercase tracking-wider mb-0.5">{site.category} • {site.historicalPeriod}</div>
+              <h2 className="text-base font-serif font-bold text-white">{site.name}</h2>
+              <p className="text-xs text-gray-400 truncate max-w-xs md:max-w-md">{site.shortDescription}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Link
+                to={`/3d-viewer/${site.id}`}
+                className="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3.5 py-2 rounded-xl hover:bg-blue-600/30 transition-all whitespace-nowrap"
+              >
+                3D Model
+              </Link>
+              <Link
+                to={`/heritage/${site.slug}`}
+                className="text-xs bg-gold text-heritage-dark font-bold px-3.5 py-2 rounded-xl hover:bg-amber-500 transition-all whitespace-nowrap"
+              >
+                Full Guide
               </Link>
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes scan {
-          0% { top: 20%; }
-          50% { top: 80%; }
-          100% { top: 20%; }
-        }
-      `}</style>
     </div>
   );
 };
